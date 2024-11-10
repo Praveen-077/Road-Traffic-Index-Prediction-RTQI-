@@ -8,13 +8,14 @@ import {
   Pressable,
   FlatList,
 } from "react-native";
-import MapView, { Marker } from "react-native-maps";
+import MapView, { Marker, Polyline } from "react-native-maps";
 import * as Location from "expo-location";
 import axios from "axios";
 import { TouchableOpacity } from "react-native";
 
 const API_KEY = "wNEepkL49mvgVH6dywG7SQL8RSVUDTBsC6vSqprkTKw";
 const geocodeEndpoint = "https://geocode.search.hereapi.com/v1/geocode";
+const routingEndpoint = "https://router.hereapi.com/v8/routes";
 
 const HomeScreen = ({ navigation }) => {
   const [source, setSource] = useState("");
@@ -23,7 +24,9 @@ const HomeScreen = ({ navigation }) => {
   const [currentLocation, setCurrentLocation] = useState(null);
   const [selectedSource, setSelectedSource] = useState(null);
   const [selectedDestination, setSelectedDestination] = useState(null);
+  const [route, setRoute] = useState([]);
   const [focusedInput, setFocusedInput] = useState(null);
+  const [polylineColor, setPolylineColor] = useState("blue");
 
   const mapRef = useRef(null); // MapView reference
 
@@ -109,6 +112,19 @@ const HomeScreen = ({ navigation }) => {
     ) : null;
   };
 
+  const viewRoute = () => {
+    if (selectedSource && selectedDestination) {
+      // Fit the map to include source and destination markers
+      mapRef.current.fitToCoordinates(
+        [selectedSource, selectedDestination],
+        {
+          edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+          animated: true,
+        }
+      );
+    }
+  };
+
   return (
     <View style={styles.container}>
       <MapView
@@ -126,7 +142,11 @@ const HomeScreen = ({ navigation }) => {
         }}
       >
         {currentLocation && (
-          <Marker coordinate={currentLocation} title="Current Location" />
+          <Marker
+            coordinate={currentLocation}
+            title="Current Location"
+            pinColor="green" // Change marker color to green
+          />
         )}
         {selectedSource && (
           <Marker
@@ -162,6 +182,10 @@ const HomeScreen = ({ navigation }) => {
           placeholder="Destination"
         />
         {renderLocationSuggestions("destination")}
+
+        <TouchableOpacity onPress={viewRoute} style={styles.button}>
+          <Text style={styles.buttonText}>View Route</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -195,6 +219,16 @@ const styles = StyleSheet.create({
     padding: 10,
     borderBottomColor: "gray",
     borderBottomWidth: 1,
+  },
+  button: {
+    backgroundColor: "#007bff",
+    padding: 10,
+    borderRadius: 5,
+    alignItems: "center",
+  },
+  buttonText: {
+    color: "white",
+    fontWeight: "bold",
   },
 });
 
