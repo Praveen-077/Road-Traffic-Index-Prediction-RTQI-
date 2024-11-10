@@ -155,8 +155,12 @@ const HomeScreen = ({ navigation }) => {
         // Ensure the polyline is a string and decode it
         if (typeof polyline === "string") {
           const waypoints = decode(polyline);
-          console.log("Waypoints", waypoints);
-          setRoute(waypoints);
+          const updatedWayPoints = waypoints.polyline;
+          const formattedWaypoints = updatedWayPoints.filter(point => point !== null && point !== undefined).map((point) => ({
+            latitude: point[0],
+            longitude: point[1]
+          }));
+          setRoute(formattedWaypoints);
         } else {
           console.error("Polyline is not a string:", polyline);
         }
@@ -205,7 +209,7 @@ const HomeScreen = ({ navigation }) => {
             pinColor="red"
           />
         )}
-        {route.length > 0 && (
+        {route && route.length > 0 && (
           <Polyline
             coordinates={route} // Decoded waypoints from the polyline
             strokeColor="blue" // Adjust polyline color if needed
