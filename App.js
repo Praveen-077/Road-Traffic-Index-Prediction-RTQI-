@@ -21,11 +21,11 @@ export default function App() {
               iconName = "map-marker";
               size = focused ? 25 : 20;
               color = focused ? "#f0f" : "#444";
-            } else if (route.name === "Status") {
+            } else if (route.name === "Status Info") {
               iconName = "road";
               size = focused ? 25 : 20;
               color = focused ? "#000" : "#555";
-            } else if (route.name === "Data") {
+            } else if (route.name === "Data Collection") {
               iconName = "info-circle";
               size = focused ? 25 : 20;
               color = focused ? "green" : "#555";
@@ -57,8 +57,8 @@ export default function App() {
         })}
       >
         <Tab.Screen name="Home" component={HomeScreen} />
-        <Tab.Screen name="Status" component={StatusScreen} />
-        <Tab.Screen name="Data" component={HelpScreen} />
+        <Tab.Screen name="Status Info" component={StatusScreen} />
+        <Tab.Screen name="Data Collection" component={HelpScreen} />
       </Tab.Navigator>
     </NavigationContainer>
   );
