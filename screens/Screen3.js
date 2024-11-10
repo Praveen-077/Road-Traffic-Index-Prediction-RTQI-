@@ -1,26 +1,35 @@
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { useState, useRef } from 'react';
+import { Audio } from 'expo-av';
+import { useState, useRef, useEffect } from 'react';
 import { Button, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-export default function App() {
+export default function HelpScreen() {
   const [facing, setFacing] = useState('back');
-  const [permission, requestPermission] = useCameraPermissions();
-  const [hasMicrophonePermission, setHasMicrophonePermission] = useState(null);
-  const [isRecording, setIsRecording] = useState(false); // Track recording state
-  const [videoUri, setVideoUri] = useState(null); // Store recorded video URI
-  const cameraRef = useRef(null); // Camera reference for recording
+  const [cameraPermission, requestCameraPermission] = useCameraPermissions();
+  const [microphonePermission, setMicrophonePermission] = useState(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [videoUri, setVideoUri] = useState(null);
+  const cameraRef = useRef(null);
 
-  if (!permission || hasMicrophonePermission) {
-    // Camera permissions are still loading.
+  // Check for microphone permission
+  useEffect(() => {
+    (async () => {
+      const { status } = await Audio.requestPermissionsAsync();
+      setMicrophonePermission(status === 'granted');
+    })();
+  }, []);
+
+  if (!cameraPermission || microphonePermission === null) {
+    // Permissions are still loading.
     return <View />;
   }
 
-  if (!permission.granted) {
-    // Camera permissions are not granted yet.
+  if (!cameraPermission.granted || !microphonePermission) {
+    // Permissions are not granted yet.
     return (
       <View style={styles.container}>
-        <Text style={{ textAlign: 'center' }}>We need your permission to show the camera</Text>
-        <Button onPress={requestPermission} title="Grant Permission" />
+        <Text style={{ textAlign: 'center' }}>We need your permission to show the camera and record audio</Text>
+        <Button onPress={requestCameraPermission} title="Grant Camera Permission" />
       </View>
     );
   }
@@ -32,11 +41,12 @@ export default function App() {
   const startRecording = async () => {
     if (cameraRef.current) {
       try {
-        const video = await cameraRef.current.recordAsync();
         setIsRecording(true);
+        const video = await cameraRef.current.recordAsync();
         setVideoUri(video.uri);
       } catch (error) {
         console.warn(error);
+        setIsRecording(false);
       }
     }
   };
@@ -50,7 +60,6 @@ export default function App() {
 
   return (
     <View style={styles.container}>
-      {/* Camera View in a Rectangular Box */}
       <View style={styles.cameraContainer}>
         <CameraView
           ref={cameraRef}
@@ -59,7 +68,6 @@ export default function App() {
         />
       </View>
 
-      {/* Buttons below the camera */}
       <View style={styles.buttonContainer}>
         <TouchableOpacity style={styles.button} onPress={toggleCameraFacing}>
           <Text style={styles.buttonText}>Flip Camera</Text>
@@ -76,7 +84,6 @@ export default function App() {
         )}
       </View>
 
-      {/* Display recorded video URI */}
       {videoUri && !isRecording && (
         <View style={styles.videoContainer}>
           <Text style={styles.videoText}>Video recorded: {videoUri}</Text>
