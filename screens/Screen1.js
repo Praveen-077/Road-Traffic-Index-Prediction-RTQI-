@@ -115,14 +115,13 @@ const HomeScreen = ({ navigation }) => {
   const viewRoute = () => {
     if (selectedSource && selectedDestination) {
       // Fit the map to include source and destination markers
-      mapRef.current.fitToCoordinates(
-        [selectedSource, selectedDestination],
-        {
-          edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
-          animated: true,
-        }
-      );
+      mapRef.current.fitToCoordinates([selectedSource, selectedDestination], {
+        edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
+        animated: true,
+      });
     }
+    console.log("Source Coordinates:", selectedSource);
+      console.log("Destination Coordinates:", selectedDestination);
   };
 
   return (
