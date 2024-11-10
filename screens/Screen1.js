@@ -118,105 +118,108 @@ const HomeScreen = ({ navigation }) => {
         edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
         animated: true,
       });
-    }
-
-    console.log("Source Coordinates:", selectedSource);
-    console.log("Destination Coordinates:", selectedDestination);
-
-    const getRoutePolyline = async (selectedSource, selectedDestination) => {
-      try {
-        const params = {
-          apiKey: API_KEY,
-          origin: `${selectedSource.latitude},${selectedSource.longitude}`,
-          destination: `${selectedDestination.latitude},${selectedDestination.longitude}`,
-          transportMode: "car",
-          return: "polyline",
-        };
-
-        const response = await axios.get(routingEndpoint, { params });
-        console.log("API Response:", response.data);
-
-        if (response.data.routes && response.data.routes[0]) {
-          const polyline = response.data.routes[0].sections[0].polyline;
-          return polyline;
-        } else {
-          console.error("No route found.");
+  
+      console.log("Source Coordinates:", selectedSource);
+      console.log("Destination Coordinates:", selectedDestination);
+  
+      const getRoutePolyline = async (selectedSource, selectedDestination) => {
+        try {
+          const params = {
+            origin: `${selectedSource.latitude},${selectedSource.longitude}`,
+            destination: `${selectedDestination.latitude},${selectedDestination.longitude}`,
+            transportMode: "car",
+            lang: "en-gb",
+            return: "polyline",
+            alternatives: 3, // Request three alternate routes
+            apiKey: API_KEY,
+          };
+  
+          const response = await axios.get(routingEndpoint, { params });
+          console.log("API Response:", response.data);
+  
+          if (response.data.routes && response.data.routes.length > 0) {
+            const polylineData = response.data.routes.map(route => route.sections[0].polyline);
+            return polylineData;
+          } else {
+            console.error("No routes found.");
+            return null;
+          }
+        } catch (error) {
+          console.error("Error fetching routes:", error);
           return null;
         }
-      } catch (error) {
-        console.error("Error fetching route:", error);
-        return null;
-      }
-    };
-
-    const polyline = await getRoutePolyline(selectedSource, selectedDestination);
-    if (polyline) {
-      try {
-        // Ensure the polyline is a string and decode it
-        if (typeof polyline === "string") {
-          const waypoints = decode(polyline);
-          const updatedWayPoints = waypoints.polyline;
-          const formattedWaypoints = updatedWayPoints.filter(point => point !== null && point !== undefined).map((point) => ({
-            latitude: point[0],
-            longitude: point[1]
-          }));
-          setRoute(formattedWaypoints);
-        } else {
-          console.error("Polyline is not a string:", polyline);
+      };
+  
+      const polylineData = await getRoutePolyline(selectedSource, selectedDestination);
+      if (polylineData) {
+        try {
+          const decodedRoutes = polylineData.map(polyline => {
+            const waypoints = decode(polyline);
+            const updatedWayPoints = waypoints.polyline;
+            return updatedWayPoints.filter(point => point !== null && point !== undefined).map((point) => ({
+              latitude: point[0],
+              longitude: point[1],
+            }));
+          });
+  
+          // Store all the routes for plotting
+          setRoute(decodedRoutes);
+        } catch (error) {
+          console.error("Error decoding polyline:", error);
         }
-      } catch (error) {
-        console.error("Error decoding polyline:", error);
+      } else {
+        console.error("No polylines returned from route API.");
       }
-    } else {
-      console.error("No polyline returned from route API.");
     }
   };
+  
 
   return (
     <View style={styles.container}>
-      <MapView
-        ref={mapRef} // Reference for map view
-        style={styles.map}
-        initialRegion={{
-          latitude: currentLocation
-            ? currentLocation.latitude
-            : 19.864855074776944,
-          latitudeDelta: 0.0922,
-          longitude: currentLocation
-            ? currentLocation.longitude
-            : 78.37408253923059,
-          longitudeDelta: 0.0421,
-        }}
-      >
-        {currentLocation && (
-          <Marker
-            coordinate={currentLocation}
-            title="Current Location"
-            pinColor="green" // Change marker color to green
-          />
-        )}
-        {selectedSource && (
-          <Marker
-            coordinate={selectedSource}
-            title="Source Location"
-            pinColor="blue"
-          />
-        )}
-        {selectedDestination && (
-          <Marker
-            coordinate={selectedDestination}
-            title="Destination Location"
-            pinColor="red"
-          />
-        )}
-        {route && route.length > 0 && (
-          <Polyline
-            coordinates={route} // Decoded waypoints from the polyline
-            strokeColor="blue" // Adjust polyline color if needed
-            strokeWidth={6}
-          />
-        )}
-      </MapView>
+     <MapView
+  ref={mapRef} // Reference for map view
+  style={styles.map}
+  initialRegion={{
+    latitude: currentLocation ? currentLocation.latitude : 19.864855074776944,
+    latitudeDelta: 0.0922,
+    longitude: currentLocation ? currentLocation.longitude : 78.37408253923059,
+    longitudeDelta: 0.0421,
+  }}
+>
+  {currentLocation && (
+    <Marker
+      coordinate={currentLocation}
+      title="Current Location"
+      pinColor="green"
+    />
+  )}
+  {selectedSource && (
+    <Marker
+      coordinate={selectedSource}
+      title="Source Location"
+      pinColor="blue"
+    />
+  )}
+  {selectedDestination && (
+    <Marker
+      coordinate={selectedDestination}
+      title="Destination Location"
+      pinColor="red"
+    />
+  )}
+
+  {/* Render multiple polylines */}
+  {route && route.length > 0 &&
+    route.map((routeCoordinates, index) => (
+      <Polyline
+        key={index}
+        coordinates={routeCoordinates} // Each decoded polyline
+        strokeColor={`#${(Math.random()*0xFFFFFF<<0).toString(16)}`} // Random color for each route
+        strokeWidth={6}
+      />
+    ))}
+</MapView>
+
 
       <View style={styles.inputContainer}>
         <TextInput
