@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react"; // Import useRef
+import React, { useState, useEffect, useRef } from "react";
 import {
   Text,
   View,
@@ -7,13 +7,15 @@ import {
   StyleSheet,
   Pressable,
   FlatList,
+  TouchableOpacity,
 } from "react-native";
 import MapView, { Marker, Polyline } from "react-native-maps";
+import polyline from "@mapbox/polyline"; 
 import * as Location from "expo-location";
 import axios from "axios";
-import { TouchableOpacity } from "react-native";
+import { decode } from "@here/flexpolyline";
 
-const API_KEY = "wNEepkL49mvgVH6dywG7SQL8RSVUDTBsC6vSqprkTKw";
+const API_KEY = "lhhJFnxCZ_DPhn3hcWBgguaoQXVzPVdbSuK3RybnGbc";
 const geocodeEndpoint = "https://geocode.search.hereapi.com/v1/geocode";
 const routingEndpoint = "https://router.hereapi.com/v8/routes";
 
@@ -26,8 +28,6 @@ const HomeScreen = ({ navigation }) => {
   const [selectedDestination, setSelectedDestination] = useState(null);
   const [route, setRoute] = useState([]);
   const [focusedInput, setFocusedInput] = useState(null);
-  const [polylineColor, setPolylineColor] = useState("blue");
-
   const mapRef = useRef(null); // MapView reference
 
   useEffect(() => {
@@ -60,10 +60,10 @@ const HomeScreen = ({ navigation }) => {
       });
       setLocations(data.items);
     } catch (error) {
-      console.error(
-        "Error fetching location suggestions:",
-        error.response ? error.response.data : error.message
-      );
+      console.error("Error fetching location suggestions:", error);
+      if (error.response && error.response.data.error === "Too Many Requests") {
+        alert("You've reached the rate limit. Please try again later.");
+      }
     }
   };
 
@@ -112,16 +112,60 @@ const HomeScreen = ({ navigation }) => {
     ) : null;
   };
 
-  const viewRoute = () => {
+  const viewRoute = async () => {
     if (selectedSource && selectedDestination) {
-      // Fit the map to include source and destination markers
       mapRef.current.fitToCoordinates([selectedSource, selectedDestination], {
         edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
         animated: true,
       });
     }
+
     console.log("Source Coordinates:", selectedSource);
-      console.log("Destination Coordinates:", selectedDestination);
+    console.log("Destination Coordinates:", selectedDestination);
+
+    const getRoutePolyline = async (selectedSource, selectedDestination) => {
+      try {
+        const params = {
+          apiKey: API_KEY,
+          origin: `${selectedSource.latitude},${selectedSource.longitude}`,
+          destination: `${selectedDestination.latitude},${selectedDestination.longitude}`,
+          transportMode: "car",
+          return: "polyline",
+        };
+
+        const response = await axios.get(routingEndpoint, { params });
+        console.log("API Response:", response.data);
+
+        if (response.data.routes && response.data.routes[0]) {
+          const polyline = response.data.routes[0].sections[0].polyline;
+          return polyline;
+        } else {
+          console.error("No route found.");
+          return null;
+        }
+      } catch (error) {
+        console.error("Error fetching route:", error);
+        return null;
+      }
+    };
+
+    const polyline = await getRoutePolyline(selectedSource, selectedDestination);
+    if (polyline) {
+      try {
+        // Ensure the polyline is a string and decode it
+        if (typeof polyline === "string") {
+          const waypoints = decode(polyline);
+          console.log("Waypoints", waypoints);
+          setRoute(waypoints);
+        } else {
+          console.error("Polyline is not a string:", polyline);
+        }
+      } catch (error) {
+        console.error("Error decoding polyline:", error);
+      }
+    } else {
+      console.error("No polyline returned from route API.");
+    }
   };
 
   return (
@@ -159,6 +203,13 @@ const HomeScreen = ({ navigation }) => {
             coordinate={selectedDestination}
             title="Destination Location"
             pinColor="red"
+          />
+        )}
+        {route.length > 0 && (
+          <Polyline
+            coordinates={route} // Decoded waypoints from the polyline
+            strokeColor="blue" // Adjust polyline color if needed
+            strokeWidth={6}
           />
         )}
       </MapView>
@@ -227,7 +278,7 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: "white",
-    fontWeight: "bold",
+    fontSize: 16,
   },
 });
 

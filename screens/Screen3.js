@@ -1,104 +1,140 @@
-import { View, Text, StyleSheet, Button } from "react-native";
-import { Accelerometer, Gyroscope } from "expo-sensors";
-import { useEffect, useState } from "react";
+import { CameraView, useCameraPermissions } from 'expo-camera';
+import { useState, useRef } from 'react';
+import { Button, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-const HelpScreen = () => {
-  const [accelerometerData, setAccelerometerData] = useState({});
-  const [gyroscopeData, setGyroscopeData] = useState({});
-  const [isActive, setIsActive] = useState(false); // State to control the sensor
+export default function App() {
+  const [facing, setFacing] = useState('back');
+  const [permission, requestPermission] = useCameraPermissions();
+  const [hasMicrophonePermission, setHasMicrophonePermission] = useState(null);
+  const [isRecording, setIsRecording] = useState(false); // Track recording state
+  const [videoUri, setVideoUri] = useState(null); // Store recorded video URI
+  const cameraRef = useRef(null); // Camera reference for recording
 
-  useEffect(() => {
-    let accelerometerSubscription;
-    let gyroscopeSubscription;
+  if (!permission || hasMicrophonePermission) {
+    // Camera permissions are still loading.
+    return <View />;
+  }
 
-    if (isActive) {
-      // Subscribe to accelerometer updates
-      accelerometerSubscription = Accelerometer.addListener((data) => {
-        setAccelerometerData(data);
-        console.log("Accelerometer data:", data);
-      });
+  if (!permission.granted) {
+    // Camera permissions are not granted yet.
+    return (
+      <View style={styles.container}>
+        <Text style={{ textAlign: 'center' }}>We need your permission to show the camera</Text>
+        <Button onPress={requestPermission} title="Grant Permission" />
+      </View>
+    );
+  }
 
-      // Subscribe to gyroscope updates
-      gyroscopeSubscription = Gyroscope.addListener((data) => {
-        setGyroscopeData(data);
-        console.log("Gyroscope data:", data); 
-      });
+  function toggleCameraFacing() {
+    setFacing(current => (current === 'back' ? 'front' : 'back'));
+  }
+
+  const startRecording = async () => {
+    if (cameraRef.current) {
+      try {
+        const video = await cameraRef.current.recordAsync();
+        setIsRecording(true);
+        setVideoUri(video.uri);
+      } catch (error) {
+        console.warn(error);
+      }
     }
+  };
 
-    return () => {
-      // Cleanup listeners when the component unmounts or when the sensor is deactivated
-      accelerometerSubscription && accelerometerSubscription.remove();
-      gyroscopeSubscription && gyroscopeSubscription.remove();
-    };
-  }, [isActive]); 
-
-  const toggleSensors = () => {
-    setIsActive((prevState) => !prevState); 
+  const stopRecording = () => {
+    if (cameraRef.current) {
+      cameraRef.current.stopRecording();
+      setIsRecording(false);
+    }
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.heading}>Sensor Data</Text>
-
-      <View style={styles.sensorContainer}>
-        <Text style={styles.sensorTitle}>Accelerometer</Text>
-        <Text style={styles.sensorValue}>x: {accelerometerData.x?.toFixed(2) || 0}</Text>
-        <Text style={styles.sensorValue}>y: {accelerometerData.y?.toFixed(2) || 0}</Text>
-        <Text style={styles.sensorValue}>z: {accelerometerData.z?.toFixed(2) || 0}</Text>
+      {/* Camera View in a Rectangular Box */}
+      <View style={styles.cameraContainer}>
+        <CameraView
+          ref={cameraRef}
+          style={styles.camera}
+          facing={facing}
+        />
       </View>
 
-      <View style={styles.sensorContainer}>
-        <Text style={styles.sensorTitle}>Gyroscope</Text>
-        <Text style={styles.sensorValue}>x: {gyroscopeData.x?.toFixed(2) || 0}</Text>
-        <Text style={styles.sensorValue}>y: {gyroscopeData.y?.toFixed(2) || 0}</Text>
-        <Text style={styles.sensorValue}>z: {gyroscopeData.z?.toFixed(2) || 0}</Text>
+      {/* Buttons below the camera */}
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity style={styles.button} onPress={toggleCameraFacing}>
+          <Text style={styles.buttonText}>Flip Camera</Text>
+        </TouchableOpacity>
+
+        {!isRecording ? (
+          <TouchableOpacity style={[styles.button, styles.recordButton]} onPress={startRecording}>
+            <Text style={styles.buttonText}>Start Recording</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity style={[styles.button, styles.recordButton]} onPress={stopRecording}>
+            <Text style={styles.buttonText}>Stop Recording</Text>
+          </TouchableOpacity>
+        )}
       </View>
 
-      <Button title={isActive ? "Stop Sensors" : "Start Sensors"} onPress={toggleSensors} />
+      {/* Display recorded video URI */}
+      {videoUri && !isRecording && (
+        <View style={styles.videoContainer}>
+          <Text style={styles.videoText}>Video recorded: {videoUri}</Text>
+        </View>
+      )}
     </View>
   );
-};
+}
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-    backgroundColor: "#f5f5f5",
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#f0f0f0',
   },
-  heading: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
-    color: "#333",
-  },
-  sensorContainer: {
-    marginVertical: 10,
-    padding: 15,
+  cameraContainer: {
+    width: '90%',
+    height: '60%',
+    borderWidth: 2,
     borderRadius: 10,
-    backgroundColor: "#fff", 
-    shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 5, 
-    width: "80%", 
+    borderColor: '#000',
+    overflow: 'hidden',
+    marginBottom: 20,
   },
-  sensorTitle: {
-    fontSize: 20,
-    fontWeight: "bold",
-    marginBottom: 10,
-    color: "#15655f", 
+  camera: {
+    flex: 1,
+    width: '100%',
+    height: '100%',
   },
-  sensorValue: {
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-evenly',
+    width: '80%',
+    marginBottom: 20,
+  },
+  button: {
+    backgroundColor: '#0066cc',
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  recordButton: {
+    backgroundColor: '#e60000',
+  },
+  buttonText: {
     fontSize: 18,
-    marginVertical: 5,
-    color: "#666", 
+    color: 'white',
+    fontWeight: 'bold',
+  },
+  videoContainer: {
+    marginTop: 20,
+    alignItems: 'center',
+  },
+  videoText: {
+    fontSize: 16,
+    color: 'black',
   },
 });
-
-export default HelpScreen;
