@@ -173,6 +173,23 @@ const HomeScreen = ({ navigation }) => {
     }
   };
   
+  const handleMapPress = (event) => {
+    const { coordinate } = event.nativeEvent;
+    const closestRoute = route.find(routeCoordinates =>
+      routeCoordinates.some(
+        point =>
+          Math.abs(point.latitude - coordinate.latitude) < 0.001 &&
+          Math.abs(point.longitude - coordinate.longitude) < 0.001
+      )
+    );
+
+    if (closestRoute) {
+      navigation.navigate("StatusScreen", {
+        latitude: selectedSource.latitude,
+        longitude: selectedSource.longitude,
+      });
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -185,6 +202,7 @@ const HomeScreen = ({ navigation }) => {
     longitude: currentLocation ? currentLocation.longitude : 78.37408253923059,
     longitudeDelta: 0.0421,
   }}
+  onPress={handleMapPress}
 >
   {currentLocation && (
     <Marker
@@ -198,6 +216,10 @@ const HomeScreen = ({ navigation }) => {
       coordinate={selectedSource}
       title="Source Location"
       pinColor="blue"
+      onPress={() => navigation.navigate("Status Info", {
+        latitude: selectedSource.latitude,
+        longitude: selectedSource.longitude,
+      })}
     />
   )}
   {selectedDestination && (
@@ -260,32 +282,32 @@ const styles = StyleSheet.create({
     top: 20,
     left: 10,
     right: 10,
-    backgroundColor: "white",
+    backgroundColor: "#fff",
     padding: 10,
-    borderRadius: 10,
-    zIndex: 1,
+    borderRadius: 5,
+    elevation: 3,
   },
   input: {
     height: 40,
-    borderColor: "gray",
+    borderColor: "#ddd",
     borderWidth: 1,
+    borderRadius: 5,
+    paddingHorizontal: 10,
     marginBottom: 10,
-    paddingLeft: 10,
-  },
-  suggestionText: {
-    padding: 10,
-    borderBottomColor: "gray",
-    borderBottomWidth: 1,
   },
   button: {
-    backgroundColor: "#007bff",
+    backgroundColor: "#1E90FF",
     padding: 10,
     borderRadius: 5,
     alignItems: "center",
   },
   buttonText: {
-    color: "white",
-    fontSize: 16,
+    color: "#fff",
+    fontWeight: "bold",
+  },
+  suggestionText: {
+    paddingVertical: 5,
+    color: "#333",
   },
 });
 
