@@ -7,6 +7,8 @@ import { Animated } from "react-native"; // Import Animated for tabBarLabel anim
 import HomeScreen from "./screens/Screen1";
 import StatusScreen from "./screens/Screen2";
 import HelpScreen from "./screens/Screen3";
+import SignupScreen from "./screens/Screen4";
+import LoginScreen from "./screens/Screen5";
 
 const Tab = createBottomTabNavigator();
 
@@ -27,6 +29,14 @@ export default function App() {
               color = focused ? "#000" : "#555";
             } else if (route.name === "Data Collection") {
               iconName = "info-circle";
+              size = focused ? 25 : 20;
+              color = focused ? "green" : "#555";
+            } else if (route.name === "Registration") {
+              iconName = "user";
+              size = focused ? 25 : 20;
+              color = focused ? "green" : "#555";
+            } else if (route.name === "Authentication") {
+              iconName = "sign-in";
               size = focused ? 25 : 20;
               color = focused ? "green" : "#555";
             }
@@ -59,6 +69,8 @@ export default function App() {
         <Tab.Screen name="Home" component={HomeScreen} />
         <Tab.Screen name="Status Info" component={StatusScreen} />
         <Tab.Screen name="Data Collection" component={HelpScreen} />
+        <Tab.Screen name="Registration" component={SignupScreen} />
+        <Tab.Screen name="Authentication" component={LoginScreen} />
       </Tab.Navigator>
     </NavigationContainer>
   );

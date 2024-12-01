@@ -11,12 +11,11 @@ export default function HelpScreen() {
   const [locationPermission, setLocationPermission] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [videoUri, setVideoUri] = useState(null);
-  const [location, setLocation] = useState(null); // Store the latest location
-  const [locationHistory, setLocationHistory] = useState([]); // Store historical coordinates
+  const [location, setLocation] = useState(null); 
+  const [locationHistory, setLocationHistory] = useState([]); 
   const cameraRef = useRef(null);
-  const locationWatcher = useRef(null); // To hold the location watcher ID
+  const locationWatcher = useRef(null);
 
-  // Check for microphone and location permissions
   useEffect(() => {
     (async () => {
       const { status: micStatus } = await Audio.requestPermissionsAsync();
@@ -27,12 +26,10 @@ export default function HelpScreen() {
     })();
   }, []);
 
-  // If permissions are not granted or still loading, show loading screen
   if (!cameraPermission || microphonePermission === null || locationPermission === null) {
     return <View />;
   }
 
-  // If permissions are not granted, prompt for permission
   if (!cameraPermission.granted || !microphonePermission || !locationPermission) {
     return (
       <View style={styles.container}>
@@ -42,33 +39,34 @@ export default function HelpScreen() {
     );
   }
 
-  // Toggle camera facing direction
   function toggleCameraFacing() {
     setFacing(current => (current === 'back' ? 'front' : 'back'));
   }
 
-  // Start recording video and tracking location
   const startRecording = async () => {
     if (cameraRef.current) {
       try {
         setIsRecording(true);
 
-        // Start location tracking with watchPositionAsync for real-time updates
+        // Start location tracking with watchPositionAsync
         locationWatcher.current = await Location.watchPositionAsync(
           {
             accuracy: Location.Accuracy.High,
-            timeInterval: 1000, // Update every second
-            distanceInterval: 1, // Update if moved 1 meter
+            timeInterval: 1000,
+            distanceInterval: 1,
           },
           (newLocation) => {
-            setLocation(newLocation.coords); // Update the latest location
-            setLocationHistory(prevHistory => [...prevHistory, newLocation.coords]); // Store the location history
+            setLocation(newLocation.coords);
+            setLocationHistory(prevHistory => [...prevHistory, newLocation.coords]);
           }
         );
 
         // Start recording video
         const video = await cameraRef.current.recordAsync();
         setVideoUri(video.uri);
+
+        // Automatically stop recording after 5 minutes (300000ms)
+        setTimeout(() => stopRecording(), 300000); // 5 minutes in milliseconds
       } catch (error) {
         console.warn(error);
         setIsRecording(false);
@@ -76,18 +74,43 @@ export default function HelpScreen() {
     }
   };
 
-  // Stop recording video and stop location tracking
   const stopRecording = () => {
     if (cameraRef.current) {
       cameraRef.current.stopRecording();
       setIsRecording(false);
 
-      // Stop the location watcher when recording stops
       if (locationWatcher.current) {
         locationWatcher.current.remove();
       }
+
+      sendVideoData(videoUri);
     }
   };
+
+  const sendVideoData = async (uri) => {
+    try {
+      // const response = await fetch('https://127.0.0.1:5000/upload', {
+      //   method: 'POST',
+      //   headers: {
+      //     'Content-Type': 'application/json',
+      //   },
+      //   body: JSON.stringify({
+      //     videoUri: uri,
+      //     location: location, // You can include other data like location
+      //   }),
+      // });
+      const response = await fetch('http://192.168.216.77:5000/test',{
+        method: "GET",
+      })
+      const data = await response.json();
+      console.log('Video data sent successfully:', data);
+    } catch (error) {
+      console.error('Error sending video data:', error);
+    }
+  };
+  
+
+
 
   return (
     <View style={styles.container}>
@@ -96,14 +119,13 @@ export default function HelpScreen() {
           ref={cameraRef}
           style={styles.camera}
           facing={facing}
+          mode='video'
+          videoQuality={"720p"}
+          mute={"true"}
         />
       </View>
 
       <View style={styles.buttonContainer}>
-        {/* <TouchableOpacity style={styles.button} onPress={toggleCameraFacing}>
-          <Text style={styles.buttonText}>Flip Camera</Text>
-        </TouchableOpacity> */}
-
         {!isRecording ? (
           <TouchableOpacity style={[styles.button, styles.recordButton]} onPress={startRecording}>
             <Text style={styles.buttonText}>Start Recording</Text>
@@ -141,9 +163,10 @@ export default function HelpScreen() {
           </ScrollView>
         </View>
       )}
-       <TouchableOpacity style={styles.buttonUpdated} >
-          <Text style={styles.buttonTextUpdated}>Save To Database</Text>
-        </TouchableOpacity>
+      
+      <TouchableOpacity style={styles.buttonUpdated}>
+        <Text style={styles.buttonTextUpdated}>Save To Database</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -153,11 +176,11 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#e0f7fa', // Light blue background for a pleasant feel
+    backgroundColor: '#e0f7fa',
   },
   cameraContainer: {
     width: '90%',
-    height: '40%', // Reduced the height to avoid overlapping with location history
+    height: '40%',
     borderWidth: 2,
     borderRadius: 10,
     borderColor: '#000',
@@ -225,7 +248,7 @@ const styles = StyleSheet.create({
     marginTop: 20,
     alignItems: 'center',
     width: '90%',
-    maxHeight: 150, // Reduced height of location history container
+    maxHeight: 150,
   },
   locationHistoryText: {
     fontSize: 16,

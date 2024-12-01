@@ -1,39 +1,27 @@
 import React, { useState } from "react";
 import { View, Text, TextInput, TouchableOpacity, StyleSheet } from "react-native";
 
-const SignupScreen = ({ navigation }) => {
-  const [form, setForm] = useState({
-    username: "",
-    email: "",
-    password: "",
-    confirmPassword: "",
-  });
+const LoginScreen = ({ navigation }) => {
+  const [form, setForm] = useState({ usernameOrEmail: "", password: "" });
 
   const handleInputChange = (name, value) => {
     setForm({ ...form, [name]: value });
   };
 
-  const handleSignup = () => {
-    // Placeholder for signup logic
-    console.log("User signed up:", form);
-    navigation.navigate("Authentication");
+  const handleLogin = () => {
+    // Placeholder for login logic
+    console.log("User logged in:", form);
+    navigation.navigate("Home"); // Redirect to the Home screen
   };
 
   return (
     <View style={styles.container}>
-      <Text style={styles.heading}>Signup</Text>
+      <Text style={styles.heading}>Login</Text>
       <TextInput
         style={styles.input}
-        placeholder="Username"
-        value={form.username}
-        onChangeText={(value) => handleInputChange("username", value)}
-      />
-      <TextInput
-        style={styles.input}
-        placeholder="Email"
-        value={form.email}
-        onChangeText={(value) => handleInputChange("email", value)}
-        keyboardType="email-address"
+        placeholder="Username or Email"
+        value={form.usernameOrEmail}
+        onChangeText={(value) => handleInputChange("usernameOrEmail", value)}
       />
       <TextInput
         style={styles.input}
@@ -42,15 +30,8 @@ const SignupScreen = ({ navigation }) => {
         onChangeText={(value) => handleInputChange("password", value)}
         secureTextEntry
       />
-      <TextInput
-        style={styles.input}
-        placeholder="Confirm Password"
-        value={form.confirmPassword}
-        onChangeText={(value) => handleInputChange("confirmPassword", value)}
-        secureTextEntry
-      />
-      <TouchableOpacity style={styles.button} onPress={handleSignup}>
-        <Text style={styles.buttonText}>Signup</Text>
+      <TouchableOpacity style={styles.button} onPress={handleLogin}>
+        <Text style={styles.buttonText}>Login</Text>
       </TouchableOpacity>
     </View>
   );
@@ -90,4 +71,4 @@ const styles = StyleSheet.create({
   },
 });
 
-export default SignupScreen;
+export default LoginScreen;

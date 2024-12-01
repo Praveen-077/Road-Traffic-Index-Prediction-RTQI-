@@ -10,12 +10,12 @@ import {
   TouchableOpacity,
 } from "react-native";
 import MapView, { Marker, Polyline } from "react-native-maps";
-import polyline from "@mapbox/polyline"; 
+import polyline from "@mapbox/polyline";
 import * as Location from "expo-location";
 import axios from "axios";
 import { decode } from "@here/flexpolyline";
 
-const API_KEY = "lhhJFnxCZ_DPhn3hcWBgguaoQXVzPVdbSuK3RybnGbc";
+const API_KEY = "FbuyAqP3Hv4nS4lg36PalFU5XC1GKya1LSYV6xiieOM";
 const geocodeEndpoint = "https://geocode.search.hereapi.com/v1/geocode";
 const routingEndpoint = "https://router.hereapi.com/v8/routes";
 
@@ -112,16 +112,38 @@ const HomeScreen = ({ navigation }) => {
     ) : null;
   };
 
+  // const sendCoordinates = async () => {
+  //     const response = await fetch("http://192.168.216.77:5000/coordinates", {
+  //       method: "POST",
+  //       headers: {
+  //         "Content-Type": "application/json",
+  //       },
+  //       body: JSON.stringify({
+  //         source: [selectedSource.latitude, selectedSource.longitude],
+  //         destination: [
+  //           selectedDestination.latitude,
+  //           selectedDestination.longitude,
+  //         ],
+  //       }),
+  //     });
+
+  //     const data = await response.json()
+  //     console.log(data)
+  // };
+
+
   const viewRoute = async () => {
     if (selectedSource && selectedDestination) {
       mapRef.current.fitToCoordinates([selectedSource, selectedDestination], {
         edgePadding: { top: 50, right: 50, bottom: 50, left: 50 },
         animated: true,
       });
-  
+
       console.log("Source Coordinates:", selectedSource);
       console.log("Destination Coordinates:", selectedDestination);
-  
+
+      // await sendCoordinates();
+
       const getRoutePolyline = async (selectedSource, selectedDestination) => {
         try {
           const params = {
@@ -133,12 +155,14 @@ const HomeScreen = ({ navigation }) => {
             alternatives: 3, // Request three alternate routes
             apiKey: API_KEY,
           };
-  
+
           const response = await axios.get(routingEndpoint, { params });
           console.log("API Response:", response.data);
-  
+
           if (response.data.routes && response.data.routes.length > 0) {
-            const polylineData = response.data.routes.map(route => route.sections[0].polyline);
+            const polylineData = response.data.routes.map(
+              (route) => route.sections[0].polyline
+            );
             return polylineData;
           } else {
             console.error("No routes found.");
@@ -149,19 +173,24 @@ const HomeScreen = ({ navigation }) => {
           return null;
         }
       };
-  
-      const polylineData = await getRoutePolyline(selectedSource, selectedDestination);
+
+      const polylineData = await getRoutePolyline(
+        selectedSource,
+        selectedDestination
+      );
       if (polylineData) {
         try {
-          const decodedRoutes = polylineData.map(polyline => {
+          const decodedRoutes = polylineData.map((polyline) => {
             const waypoints = decode(polyline);
             const updatedWayPoints = waypoints.polyline;
-            return updatedWayPoints.filter(point => point !== null && point !== undefined).map((point) => ({
-              latitude: point[0],
-              longitude: point[1],
-            }));
+            return updatedWayPoints
+              .filter((point) => point !== null && point !== undefined)
+              .map((point) => ({
+                latitude: point[0],
+                longitude: point[1],
+              }));
           });
-  
+
           // Store all the routes for plotting
           setRoute(decodedRoutes);
         } catch (error) {
@@ -172,12 +201,12 @@ const HomeScreen = ({ navigation }) => {
       }
     }
   };
-  
+
   const handleMapPress = (event) => {
     const { coordinate } = event.nativeEvent;
-    const closestRoute = route.find(routeCoordinates =>
+    const closestRoute = route.find((routeCoordinates) =>
       routeCoordinates.some(
-        point =>
+        (point) =>
           Math.abs(point.latitude - coordinate.latitude) < 0.001 &&
           Math.abs(point.longitude - coordinate.longitude) < 0.001
       )
@@ -193,55 +222,61 @@ const HomeScreen = ({ navigation }) => {
 
   return (
     <View style={styles.container}>
-     <MapView
-  ref={mapRef} // Reference for map view
-  style={styles.map}
-  initialRegion={{
-    latitude: currentLocation ? currentLocation.latitude : 19.864855074776944,
-    latitudeDelta: 0.0922,
-    longitude: currentLocation ? currentLocation.longitude : 78.37408253923059,
-    longitudeDelta: 0.0421,
-  }}
-  onPress={handleMapPress}
->
-  {currentLocation && (
-    <Marker
-      coordinate={currentLocation}
-      title="Current Location"
-      pinColor="green"
-    />
-  )}
-  {selectedSource && (
-    <Marker
-      coordinate={selectedSource}
-      title="Source Location"
-      pinColor="blue"
-      onPress={() => navigation.navigate("Status Info", {
-        latitude: selectedSource.latitude,
-        longitude: selectedSource.longitude,
-      })}
-    />
-  )}
-  {selectedDestination && (
-    <Marker
-      coordinate={selectedDestination}
-      title="Destination Location"
-      pinColor="red"
-    />
-  )}
+      <MapView
+        ref={mapRef} // Reference for map view
+        style={styles.map}
+        initialRegion={{
+          latitude: currentLocation
+            ? currentLocation.latitude
+            : 19.864855074776944,
+          latitudeDelta: 0.0922,
+          longitude: currentLocation
+            ? currentLocation.longitude
+            : 78.37408253923059,
+          longitudeDelta: 0.0421,
+        }}
+        onPress={handleMapPress}
+      >
+        {currentLocation && (
+          <Marker
+            coordinate={currentLocation}
+            title="Current Location"
+            pinColor="green"
+          />
+        )}
+        {selectedSource && (
+          <Marker
+            coordinate={selectedSource}
+            title="Source Location"
+            pinColor="blue"
+            onPress={() =>
+              navigation.navigate("Status Info", {
+                latitude: selectedSource.latitude,
+                longitude: selectedSource.longitude,
+              })
+            }
+          />
+        )}
+        {selectedDestination && (
+          <Marker
+            coordinate={selectedDestination}
+            title="Destination Location"
+            pinColor="red"
+          />
+        )}
 
-  {/* Render multiple polylines */}
-  {route && route.length > 0 &&
-    route.map((routeCoordinates, index) => (
-      <Polyline
-        key={index}
-        coordinates={routeCoordinates} // Each decoded polyline
-        strokeColor={`#${(Math.random()*0xFFFFFF<<0).toString(16)}`} // Random color for each route
-        strokeWidth={6}
-      />
-    ))}
-</MapView>
-
+        {/* Render multiple polylines */}
+        {route &&
+          route.length > 0 &&
+          route.map((routeCoordinates, index) => (
+            <Polyline
+              key={index}
+              coordinates={routeCoordinates} // Each decoded polyline
+              strokeColor={`#${((Math.random() * 0xffffff) << 0).toString(16)}`} // Random color for each route
+              strokeWidth={6}
+            />
+          ))}
+      </MapView>
 
       <View style={styles.inputContainer}>
         <TextInput
