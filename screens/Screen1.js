@@ -15,7 +15,7 @@ import * as Location from "expo-location";
 import axios from "axios";
 import { decode } from "@here/flexpolyline";
 
-const API_KEY = "FbuyAqP3Hv4nS4lg36PalFU5XC1GKya1LSYV6xiieOM";
+const API_KEY = "rFKXuddm2HlVOSynCLI2TNApSTV7i8bTtcOth-0M-lE";
 const geocodeEndpoint = "https://geocode.search.hereapi.com/v1/geocode";
 const routingEndpoint = "https://router.hereapi.com/v8/routes";
 
@@ -28,6 +28,7 @@ const HomeScreen = ({ navigation }) => {
   const [selectedDestination, setSelectedDestination] = useState(null);
   const [route, setRoute] = useState([]);
   const [focusedInput, setFocusedInput] = useState(null);
+  const [roadStatus, setRoadStatus] = useState(null); // Store the server response data
   const mapRef = useRef(null); // MapView reference
 
   useEffect(() => {
@@ -47,7 +48,7 @@ const HomeScreen = ({ navigation }) => {
 
   const fetchLocationSuggestions = async (query) => {
     if (!query) {
-      setLocations([]); // Clear suggestions if query is empty
+      setLocations([]); 
       return;
     }
 
@@ -61,9 +62,6 @@ const HomeScreen = ({ navigation }) => {
       setLocations(data.items);
     } catch (error) {
       console.error("Error fetching location suggestions:", error);
-      if (error.response && error.response.data.error === "Too Many Requests") {
-        alert("You've reached the rate limit. Please try again later.");
-      }
     }
   };
 
@@ -112,25 +110,26 @@ const HomeScreen = ({ navigation }) => {
     ) : null;
   };
 
-  // const sendCoordinates = async () => {
-  //     const response = await fetch("http://192.168.216.77:5000/coordinates", {
-  //       method: "POST",
-  //       headers: {
-  //         "Content-Type": "application/json",
-  //       },
-  //       body: JSON.stringify({
-  //         source: [selectedSource.latitude, selectedSource.longitude],
-  //         destination: [
-  //           selectedDestination.latitude,
-  //           selectedDestination.longitude,
-  //         ],
-  //       }),
-  //     });
+  const sendCoordinates = async () => {
+    const response = await fetch("http://192.168.6.77:5000/coordinates", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        source: [selectedSource.latitude, selectedSource.longitude],
+        destination: [
+          selectedDestination.latitude,
+          selectedDestination.longitude,
+        ],
+      }),
+    });
 
-  //     const data = await response.json()
-  //     console.log(data)
-  // };
-
+    const data = await response.json();
+    console.log(data); // Log the response for debugging
+    setRoadStatus(data.data); // Save the road status data
+    return data;
+  };
 
   const viewRoute = async () => {
     if (selectedSource && selectedDestination) {
@@ -139,10 +138,7 @@ const HomeScreen = ({ navigation }) => {
         animated: true,
       });
 
-      console.log("Source Coordinates:", selectedSource);
-      console.log("Destination Coordinates:", selectedDestination);
-
-      // await sendCoordinates();
+      const responseData = await sendCoordinates(); // Get the data from the server response
 
       const getRoutePolyline = async (selectedSource, selectedDestination) => {
         try {
@@ -199,24 +195,7 @@ const HomeScreen = ({ navigation }) => {
       } else {
         console.error("No polylines returned from route API.");
       }
-    }
-  };
 
-  const handleMapPress = (event) => {
-    const { coordinate } = event.nativeEvent;
-    const closestRoute = route.find((routeCoordinates) =>
-      routeCoordinates.some(
-        (point) =>
-          Math.abs(point.latitude - coordinate.latitude) < 0.001 &&
-          Math.abs(point.longitude - coordinate.longitude) < 0.001
-      )
-    );
-
-    if (closestRoute) {
-      navigation.navigate("StatusScreen", {
-        latitude: selectedSource.latitude,
-        longitude: selectedSource.longitude,
-      });
     }
   };
 
@@ -235,7 +214,6 @@ const HomeScreen = ({ navigation }) => {
             : 78.37408253923059,
           longitudeDelta: 0.0421,
         }}
-        onPress={handleMapPress}
       >
         {currentLocation && (
           <Marker
@@ -249,12 +227,6 @@ const HomeScreen = ({ navigation }) => {
             coordinate={selectedSource}
             title="Source Location"
             pinColor="blue"
-            onPress={() =>
-              navigation.navigate("Status Info", {
-                latitude: selectedSource.latitude,
-                longitude: selectedSource.longitude,
-              })
-            }
           />
         )}
         {selectedDestination && (
@@ -300,6 +272,21 @@ const HomeScreen = ({ navigation }) => {
         <TouchableOpacity onPress={viewRoute} style={styles.button}>
           <Text style={styles.buttonText}>View Route</Text>
         </TouchableOpacity>
+        <TouchableOpacity style={styles.button} onPress={() => 
+          navigation.navigate("Status Info", {
+            source: "13.650670, 79.882425",
+            destination: "13.638068, 79.900306",
+            RTQI: 8,
+            LaneWidth: 3.5,
+            LightingCondition: 1,
+            TrafficCongestion: 2,
+            Potholes: 1,
+            Lanes: 3,
+            LaneMarking: 1
+          })
+        }>
+          <Text style={styles.buttonText}>Route Details</Text>
+        </TouchableOpacity>
       </View>
     </View>
   );
@@ -314,35 +301,36 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     position: "absolute",
-    top: 20,
+    top: 50,
     left: 10,
     right: 10,
-    backgroundColor: "#fff",
+    zIndex: 1,
     padding: 10,
+    backgroundColor: "rgba(255, 255, 255, 0.7)",
     borderRadius: 5,
-    elevation: 3,
   },
   input: {
     height: 40,
-    borderColor: "#ddd",
+    borderColor: "#ccc",
     borderWidth: 1,
-    borderRadius: 5,
-    paddingHorizontal: 10,
     marginBottom: 10,
-  },
-  button: {
-    backgroundColor: "#1E90FF",
-    padding: 10,
+    paddingLeft: 10,
     borderRadius: 5,
-    alignItems: "center",
-  },
-  buttonText: {
-    color: "#fff",
-    fontWeight: "bold",
   },
   suggestionText: {
-    paddingVertical: 5,
-    color: "#333",
+    fontSize: 14,
+    padding: 5,
+    backgroundColor: "#fff",
+  },
+  button: {
+    backgroundColor: "#4CAF50",
+    padding: 10,
+    borderRadius: 5,
+    marginTop: 10,
+  },
+  buttonText: {
+    color: "white",
+    textAlign: "center",
   },
 });
 

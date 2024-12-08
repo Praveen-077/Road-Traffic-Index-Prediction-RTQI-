@@ -24,27 +24,27 @@ const SignupScreen = ({ navigation }) => {
       <Text style={styles.heading}>Signup</Text>
       <TextInput
         style={styles.input}
-        placeholder="Username"
+        placeholder="Praveen Kumar"
         value={form.username}
         onChangeText={(value) => handleInputChange("username", value)}
       />
       <TextInput
         style={styles.input}
-        placeholder="Email"
+        placeholder="kumarp3986@gmail.com"
         value={form.email}
         onChangeText={(value) => handleInputChange("email", value)}
         keyboardType="email-address"
       />
       <TextInput
         style={styles.input}
-        placeholder="Password"
+        placeholder="*********"
         value={form.password}
         onChangeText={(value) => handleInputChange("password", value)}
         secureTextEntry
       />
       <TextInput
         style={styles.input}
-        placeholder="Confirm Password"
+        placeholder="*********"
         value={form.confirmPassword}
         onChangeText={(value) => handleInputChange("confirmPassword", value)}
         secureTextEntry

@@ -19,13 +19,13 @@ const LoginScreen = ({ navigation }) => {
       <Text style={styles.heading}>Login</Text>
       <TextInput
         style={styles.input}
-        placeholder="Username or Email"
+        placeholder="kumarp3986@gmail.com"
         value={form.usernameOrEmail}
         onChangeText={(value) => handleInputChange("usernameOrEmail", value)}
       />
       <TextInput
         style={styles.input}
-        placeholder="Password"
+        placeholder="*********"
         value={form.password}
         onChangeText={(value) => handleInputChange("password", value)}
         secureTextEntry

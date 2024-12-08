@@ -1,46 +1,69 @@
-import { CameraView, useCameraPermissions } from 'expo-camera';
-import { Audio } from 'expo-av';
-import * as Location from 'expo-location';
-import { useState, useRef, useEffect } from 'react';
-import { Button, StyleSheet, Text, TouchableOpacity, View, ScrollView } from 'react-native';
+import { CameraView, useCameraPermissions } from "expo-camera";
+import { Audio } from "expo-av";
+import * as Location from "expo-location";
+import { useState, useRef, useEffect } from "react";
+import {
+  Button,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  ScrollView,
+} from "react-native";
 
 export default function HelpScreen() {
-  const [facing, setFacing] = useState('back');
+  const [facing, setFacing] = useState("back");
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
   const [microphonePermission, setMicrophonePermission] = useState(null);
   const [locationPermission, setLocationPermission] = useState(null);
   const [isRecording, setIsRecording] = useState(false);
   const [videoUri, setVideoUri] = useState(null);
-  const [location, setLocation] = useState(null); 
-  const [locationHistory, setLocationHistory] = useState([]); 
+  const [location, setLocation] = useState(null);
+  const [locationHistory, setLocationHistory] = useState([]);
   const cameraRef = useRef(null);
   const locationWatcher = useRef(null);
+
+  const [numButtons, setNumButtons] = useState(4); 
 
   useEffect(() => {
     (async () => {
       const { status: micStatus } = await Audio.requestPermissionsAsync();
-      setMicrophonePermission(micStatus === 'granted');
+      setMicrophonePermission(micStatus === "granted");
 
-      const { status: locStatus } = await Location.requestForegroundPermissionsAsync();
-      setLocationPermission(locStatus === 'granted');
+      const { status: locStatus } =
+        await Location.requestForegroundPermissionsAsync();
+      setLocationPermission(locStatus === "granted");
     })();
   }, []);
 
-  if (!cameraPermission || microphonePermission === null || locationPermission === null) {
+  if (
+    !cameraPermission ||
+    microphonePermission === null ||
+    locationPermission === null
+  ) {
     return <View />;
   }
 
-  if (!cameraPermission.granted || !microphonePermission || !locationPermission) {
+  if (
+    !cameraPermission.granted ||
+    !microphonePermission ||
+    !locationPermission
+  ) {
     return (
       <View style={styles.container}>
-        <Text style={styles.text}>We need your permission to use the camera, microphone, and location.</Text>
-        <Button onPress={requestCameraPermission} title="Grant Camera Permission" />
+        <Text style={styles.text}>
+          We need your permission to use the camera, microphone, and location.
+        </Text>
+        <Button
+          onPress={requestCameraPermission}
+          title="Grant Camera Permission"
+        />
       </View>
     );
   }
 
   function toggleCameraFacing() {
-    setFacing(current => (current === 'back' ? 'front' : 'back'));
+    setFacing((current) => (current === "back" ? "front" : "back"));
   }
 
   const startRecording = async () => {
@@ -57,7 +80,10 @@ export default function HelpScreen() {
           },
           (newLocation) => {
             setLocation(newLocation.coords);
-            setLocationHistory(prevHistory => [...prevHistory, newLocation.coords]);
+            setLocationHistory((prevHistory) => [
+              ...prevHistory,
+              newLocation.coords,
+            ]);
           }
         );
 
@@ -78,48 +104,88 @@ export default function HelpScreen() {
     if (cameraRef.current) {
       cameraRef.current.stopRecording();
       setIsRecording(false);
-
+  
       if (locationWatcher.current) {
         locationWatcher.current.remove();
       }
-
-      sendVideoData(videoUri);
+  
+      // Call sendVideoData after recording stops to upload the video
+      sendVideoData();
     }
-  };
+  };  
 
-  const sendVideoData = async (uri) => {
+  const sendVideoData = async () => {
+    if (!videoUri) {
+      alert("No video recorded!");
+      return;
+    }
+  
+    const formData = new FormData();
+  
+    // Create a file object to send the video
+    const videoFile = {
+      uri: videoUri,
+      name: "video.mp4", // You can change this to the name you want for the video file
+      type: "video/mp4", // Adjust MIME type if needed based on the video format
+    };
+  
+    // Append the video file to FormData
+    formData.append("file", videoFile);
+    formData.append("path", "0"); // Add any other fields if required by your server
+  
     try {
-      // const response = await fetch('https://127.0.0.1:5000/upload', {
-      //   method: 'POST',
-      //   headers: {
-      //     'Content-Type': 'application/json',
-      //   },
-      //   body: JSON.stringify({
-      //     videoUri: uri,
-      //     location: location, // You can include other data like location
-      //   }),
-      // });
-      const response = await fetch('http://192.168.216.77:5000/test',{
-        method: "GET",
-      })
-      const data = await response.json();
-      console.log('Video data sent successfully:', data);
+      // Send POST request to your server's upload endpoint
+      const response = await fetch("http://192.168.6.77:5000/upload", {
+        method: "POST",
+        body: formData,
+        headers: {
+          "Content-Type": "multipart/form-data", // Content type must be set correctly for file upload
+        },
+      });
+  
+      if (response.ok) {
+        const result = await response.json(); // If your server returns JSON, you can handle it here
+        console.log("Upload successful:", result);
+      } else {
+        console.error("Upload failed:", response.statusText);
+      }
     } catch (error) {
-      console.error('Error sending video data:', error);
+      console.error("Error occurred during upload:", error);
     }
   };
   
-
-
-
+  const DynamicButtons = ({ numberOfButtons }) => {
+    // Create an array with the given number of buttons
+    const buttonsArray = new Array(numberOfButtons).fill(null);
+  
+    const handleButtonPress = (index) => {
+      console.log(`Button ${index + 1} pressed`);
+    };
+  
+    return (
+      <View style={styles.container}>
+        {buttonsArray.map((_, index) => (
+          <TouchableOpacity
+            key={index}
+            style={styles.button}
+            onPress={() => handleButtonPress(index)}
+          >
+            <Text style={styles.buttonText}>Path {index + 1}</Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+    );
+  };
+  
   return (
     <View style={styles.container}>
+      <DynamicButtons numberOfButtons={numButtons} />
       <View style={styles.cameraContainer}>
         <CameraView
           ref={cameraRef}
           style={styles.camera}
           facing={facing}
-          mode='video'
+          mode="video"
           videoQuality={"720p"}
           mute={"true"}
         />
@@ -127,11 +193,17 @@ export default function HelpScreen() {
 
       <View style={styles.buttonContainer}>
         {!isRecording ? (
-          <TouchableOpacity style={[styles.button, styles.recordButton]} onPress={startRecording}>
+          <TouchableOpacity
+            style={[styles.button, styles.recordButton]}
+            onPress={startRecording}
+          >
             <Text style={styles.buttonText}>Start Recording</Text>
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity style={[styles.button, styles.recordButton]} onPress={stopRecording}>
+          <TouchableOpacity
+            style={[styles.button, styles.recordButton]}
+            onPress={stopRecording}
+          >
             <Text style={styles.buttonText}>Stop Recording</Text>
           </TouchableOpacity>
         )}
@@ -140,7 +212,8 @@ export default function HelpScreen() {
       {location && (
         <View style={styles.locationContainer}>
           <Text style={styles.locationText}>
-            Current Location: {`Latitude: ${location.latitude}, Longitude: ${location.longitude}`}
+            Current Location:{" "}
+            {`Latitude: ${location.latitude}, Longitude: ${location.longitude}`}
           </Text>
         </View>
       )}
@@ -163,7 +236,7 @@ export default function HelpScreen() {
           </ScrollView>
         </View>
       )}
-      
+
       <TouchableOpacity style={styles.buttonUpdated}>
         <Text style={styles.buttonTextUpdated}>Save To Database</Text>
       </TouchableOpacity>
@@ -174,94 +247,95 @@ export default function HelpScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#e0f7fa',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#e0f7fa",
   },
   cameraContainer: {
-    width: '90%',
-    height: '40%',
+    width: "90%",
+    height: "40%",
     borderWidth: 2,
     borderRadius: 10,
-    borderColor: '#000',
-    overflow: 'hidden',
+    borderColor: "#000",
+    overflow: "hidden",
     marginBottom: 20,
   },
   camera: {
     flex: 1,
-    width: '100%',
-    height: '100%',
+    width: "100%",
+    height: "100%",
   },
   buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-evenly',
-    width: '80%',
+    flexDirection: "row",
+    justifyContent: "space-evenly",
+    width: "80%",
     marginBottom: 20,
   },
   button: {
-    backgroundColor: '#0066cc',
+    backgroundColor: "#0066cc",
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 5,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
+    margin: 3,
   },
   buttonUpdated: {
     marginTop: 15,
-    backgroundColor: '#0066cc',
+    backgroundColor: "#0066cc",
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 5,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   recordButton: {
-    backgroundColor: '#e60000',
+    backgroundColor: "#e60000",
   },
   buttonText: {
     fontSize: 18,
-    color: 'white',
-    fontWeight: 'bold',
+    color: "white",
+    fontWeight: "bold",
   },
   buttonTextUpdated: {
     fontSize: 18,
-    color: 'white',
-    fontWeight: 'bold',
+    color: "white",
+    fontWeight: "bold",
   },
   videoContainer: {
     marginTop: 20,
-    alignItems: 'center',
+    alignItems: "center",
   },
   videoText: {
     fontSize: 16,
-    color: 'black',
+    color: "black",
   },
   locationContainer: {
     marginTop: 20,
-    alignItems: 'center',
+    alignItems: "center",
   },
   locationText: {
     fontSize: 16,
-    color: 'black',
+    color: "black",
   },
   locationHistoryContainer: {
     marginTop: 20,
-    alignItems: 'center',
-    width: '90%',
+    alignItems: "center",
+    width: "90%",
     maxHeight: 150,
   },
   locationHistoryText: {
     fontSize: 16,
-    color: 'black',
-    fontWeight: 'bold',
+    color: "black",
+    fontWeight: "bold",
   },
   scrollView: {
-    width: '100%',
+    width: "100%",
     marginTop: 10,
     borderWidth: 1,
-    borderColor: '#ddd',
+    borderColor: "#ddd",
     padding: 5,
     borderRadius: 5,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
 });

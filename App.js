@@ -66,11 +66,11 @@ export default function App() {
           },
         })}
       >
+        <Tab.Screen name="Registration" component={SignupScreen} />
+        <Tab.Screen name="Authentication" component={LoginScreen} />
         <Tab.Screen name="Home" component={HomeScreen} />
         <Tab.Screen name="Status Info" component={StatusScreen} />
         <Tab.Screen name="Data Collection" component={HelpScreen} />
-        <Tab.Screen name="Registration" component={SignupScreen} />
-        <Tab.Screen name="Authentication" component={LoginScreen} />
       </Tab.Navigator>
     </NavigationContainer>
   );
